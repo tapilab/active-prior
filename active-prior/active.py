@@ -45,8 +45,20 @@ class ActiveLearner(object):
 class Random(ActiveLearner):
     """ Select instances at random. """
 
-    def __init__(self, clf, batch_size=1, iters=100, eval_f='accuracy_score'):
-        super(Random, self).__init__(clf, batch_size, iters, eval_f)
+    def __init__(self, *args, **kwargs):
+        super(Random, self).__init__(*args, **kwargs)
+
+    def select_instances(self, X, labeled_indices, unlabeled_indices):
+        a = list(unlabeled_indices)
+        random.shuffle(a)
+        return set(a[:self.batch_size])
+
+
+class Uncertain(ActiveLearner):
+    """ Select instances by uncertainty score. """
+
+    def __init__(self, *args, **kwargs):
+        super(Uncertain, self).__init__(*args, **kwargs)
 
     def select_instances(self, X, labeled_indices, unlabeled_indices):
         a = list(unlabeled_indices)
