@@ -69,8 +69,8 @@ def print_results(results):
 def main():
     random.seed(1234567)
     args = parse_args()
-    # clf = LogisticRegression()
-    clf = MultinomialNB()
+    clf = LogisticRegression()
+    # clf = MultinomialNB()
     data = pickle.load(open(args.data, 'rb'))
     results = defaultdict(lambda: [])
     for triali in range(args.trials):
@@ -81,7 +81,7 @@ def main():
             # Note that we must clone initial_labeled each time, otherwise it is never cleared!
             res = learner.run(data.xtrain, data.ytrain, data.xtest,
                               data.ytest, set(initial_labeled))
-            logging.info('\tmean=%g' % np.mean(res))
+            logging.info('\tmean=%g\n\n' % np.mean(res))
             results[learner_name].append(res)
     print_results(results)
     plot_results(results, args)
