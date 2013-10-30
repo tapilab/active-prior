@@ -17,6 +17,8 @@ Active learning with target priors
 * Free software: BSD license
 * Documentation: http://active-prior.rtfd.org.
 
+Experiments exploring active learning with information about the true label distribution.
+
 Features
 --------
 
