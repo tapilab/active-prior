@@ -48,8 +48,7 @@ class ActiveLearner(object):
         unlabeled = set(range(len(ytrain))) - labeled
         results = []
         for iteri in range(self.iters):
-            # logger.info('\riteration %d', iteri)
-            sys.stdout.write('\riteration %d' % iteri)
+            sys.stdout.write('\riteration %d labeled=%d unlabeled=%d' % (iteri, len(labeled), len(unlabeled)))
             sys.stdout.flush()
             tolabel = self.select_instances(xtrain, labeled, unlabeled)
             # logging.debug('labeling %s', str(tolabel))
@@ -57,6 +56,7 @@ class ActiveLearner(object):
             unlabeled -= tolabel
             self.clf.fit(xtrain[list(labeled)], ytrain[list(labeled)])
             results.append(self.eval_f(self.clf.predict(xtest), ytest))
+        print '\n'
         return results
 
     @abc.abstractmethod
@@ -99,3 +99,20 @@ class Certain(ActiveLearner):
         unl = np.array(list(unlabeled_indices))
         top_indices = self.clf.predict_proba(X[unl]).max(axis=1).argsort()[::-1][:self.batch_size]
         return set(unl[top_indices])
+
+
+class CertainUncertain(ActiveLearner):
+    """ Select instances by alternating between certainty score and
+    uncertainty score. """
+
+    def __init__(self, *args, **kwargs):
+        super(CertainUncertain, self).__init__(*args, **kwargs)
+        self.certain = Certain(*args, **kwargs)
+        self.uncertain = Uncertain(*args, **kwargs)
+        self.selectors = [self.certain, self.uncertain]
+        self.which = 0
+
+    def select_instances(self, X, labeled_indices, unlabeled_indices):
+        selector = self.selectors[self.which]
+        self.which = (self.which + 1) % len(self.selectors)
+        return selector.select_instances(X, labeled_indices, unlabeled_indices)

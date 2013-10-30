@@ -8,6 +8,7 @@ import sys
 
 import numpy as np
 from sklearn.datasets import fetch_20newsgroups
+from sklearn.datasets import load_digits
 from sklearn.feature_extraction.text import CountVectorizer
 
 import data
@@ -23,11 +24,17 @@ def parse_args():
     return ap.parse_args()
 
 
+def digits():
+    """ Digit recognition. """
+    d = load_digits(2)
+    return data.Data(d.data[:200], d.target[:200], d.data[200:], d.target[200:])
+
+
 def news():
     """ 20 newsgroup graphics vs windows """
     vec = CountVectorizer(min_df=5, stop_words='english')
-    # cats = ['comp.graphics', 'comp.windows.x']
-    cats = ['alt.atheism', 'talk.religion.misc']
+    cats = ['comp.graphics', 'comp.windows.x']
+    # cats = ['alt.atheism', 'talk.religion.misc']
     # cats = ['rec.sport.baseball', 'sci.crypt']
 
     newstrain = fetch_20newsgroups(subset='train',

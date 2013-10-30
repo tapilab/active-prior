@@ -78,7 +78,9 @@ def main():
         for learner_name in args.models.split(','):
             logger.info('trial %d for active learner %s' % (triali, learner_name))
             learner = construct_learner(learner_name, clf, args)
-            res = learner.run(data.xtrain, data.ytrain, data.xtest, data.ytest, initial_labeled)
+            # Note that we must clone initial_labeled each time, otherwise it is never cleared!
+            res = learner.run(data.xtrain, data.ytrain, data.xtest,
+                              data.ytest, set(initial_labeled))
             logging.info('\tmean=%g' % np.mean(res))
             results[learner_name].append(res)
     print_results(results)
