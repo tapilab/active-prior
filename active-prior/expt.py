@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 
 def parse_args():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--batch-size', default=1, help='number of labels per iteration')
+    ap.add_argument('--batch-size', default=1, type=int, help='number of labels per iteration')
     ap.add_argument('--data', default='/data/active-prior/news.pkl', help='pickled data file')
     ap.add_argument('--eval', default='accuracy_score', help='sklearn.metrics evaluation function name')
-    ap.add_argument('--iters', default=100, help='number of learning iterations')
+    ap.add_argument('--iters', default=100, type=int, help='number of learning iterations')
     ap.add_argument('--model', default='Random', help='name of ActiveLearner subclass')
     return ap.parse_args()
 
@@ -33,7 +33,7 @@ def main():
     print args
     print learner
     data = pickle.load(open(args.data, 'rb'))
-    results, classifiers = learner.run(data.xtrain, data.ytrain, data.xtest, data.ytest)
+    results = learner.run(data.xtrain, data.ytrain, data.xtest, data.ytest, set(range(10)))
     logging.info(results)
 
 

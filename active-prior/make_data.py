@@ -3,6 +3,7 @@
 import argparse
 import logging
 import pickle
+import random
 import sys
 
 import numpy as np
@@ -12,7 +13,6 @@ from sklearn.feature_extraction.text import CountVectorizer
 import data
 
 
-rand = np.random.mtrand.RandomState(8675309)
 logger = logging.getLogger(__name__)
 
 
@@ -30,12 +30,12 @@ def news():
     newstrain = fetch_20newsgroups(subset='train',
                                    remove=('headers', 'footers', 'quotes'),
                                    categories=['comp.graphics', 'comp.windows.x'],
-                                   shuffle=True, random_state=rand)
+                                   shuffle=True, random_state=random.randint(1, 1e8))
     newstrain.data = vec.fit_transform(newstrain.data)
     newstest = fetch_20newsgroups(subset='test',
                                   remove=('headers', 'footers', 'quotes'),
                                   categories=['comp.graphics', 'comp.windows.x'],
-                                  shuffle=True, random_state=rand)
+                                  shuffle=True, random_state=random.randint(1, 1e8))
     newstest.data = vec.transform(newstest.data)
     return data.Data(newstrain.data, newstrain.target, newstest.data, newstest.target)
 
