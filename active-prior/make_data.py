@@ -25,16 +25,19 @@ def parse_args():
 
 def news():
     """ 20 newsgroup graphics vs windows """
-    vec = CountVectorizer(min_df=10, stop_words='english')
+    vec = CountVectorizer(min_df=5, stop_words='english')
+    # cats = ['comp.graphics', 'comp.windows.x']
+    cats = ['alt.atheism', 'talk.religion.misc']
+    # cats = ['rec.sport.baseball', 'sci.crypt']
 
     newstrain = fetch_20newsgroups(subset='train',
                                    remove=('headers', 'footers', 'quotes'),
-                                   categories=['comp.graphics', 'comp.windows.x'],
+                                   categories=cats,
                                    shuffle=True, random_state=random.randint(1, 1e8))
     newstrain.data = vec.fit_transform(newstrain.data)
     newstest = fetch_20newsgroups(subset='test',
                                   remove=('headers', 'footers', 'quotes'),
-                                  categories=['comp.graphics', 'comp.windows.x'],
+                                  categories=cats,
                                   shuffle=True, random_state=random.randint(1, 1e8))
     newstest.data = vec.transform(newstest.data)
     return data.Data(newstrain.data, newstrain.target, newstest.data, newstest.target)
@@ -44,8 +47,8 @@ def main():
     args = parse_args()
     logging.info(args)
     data = getattr(sys.modules[__name__], args.name)()
-    logging.info('saving %s data with %d training and %d testing instances' %
-                 (args.name, len(data.ytrain), len(data.ytest)))
+    logging.info('saving %s data with %d training and %d testing instances and %d labels' %
+                 (args.name, len(data.ytrain), len(data.ytest), len(set(data.ytrain))))
     pickle.dump(data, open(args.output, 'wb'))
 
 
