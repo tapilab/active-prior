@@ -47,7 +47,7 @@ def plot_results(results, args):
     for learner, results in results.iteritems():
         x = range(len(results[0]))
         y = np.mean(results, axis=0)
-        error = np.std(results, axis=0) * 1.96 / math.sqrt(len(results))
+        error = np.std(results, axis=0) / math.sqrt(len(results))
         color = colors.pop()
         plt.plot(x, y, color + 'o-', label=learner)
         plt.fill_between(x, y - error, y + error, alpha=0.5, facecolor=color)
