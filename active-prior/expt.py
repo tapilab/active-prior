@@ -23,9 +23,9 @@ def parse_args():
     ap.add_argument('--batch-size', default=1, type=int, help='number of labels per iteration')
     ap.add_argument('--data', default='/data/active-prior/news.pkl', help='pickled data file')
     ap.add_argument('--eval', default='roc_auc_score', help='sklearn.metrics evaluation function name')
-    ap.add_argument('--init-labeled', default=10, type=int, help='initial number of labeled examples')
+    ap.add_argument('--init-labeled', default=20, type=int, help='initial number of labeled examples')
     ap.add_argument('--iters', default=100, type=int, help='number of learning iterations')
-    ap.add_argument('--models', default='Random,Uncertain', help='name of ActiveLearner subclasses')
+    ap.add_argument('--models', default='Random,Uncertain,Certain', help='name of ActiveLearner subclasses')
     ap.add_argument('--trials', default=10, type=int, help='number of random trials')
     return ap.parse_args()
 
