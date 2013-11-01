@@ -8,6 +8,7 @@ import random
 import sys
 
 import numpy as np
+from scipy import spatial
 import sklearn.metrics
 
 
@@ -31,6 +32,14 @@ def entropy(probas):
     return -sum(p * math.log(p, 2.) for p in probas if p != 0.)
 
 
+def class_counts(y):
+    """
+    >>> class_counts([2, 1, 1, 0, 1, 2])
+    [1, 3, 2]
+    """
+    return [len([yj for yj in y if yj == yi]) for yi in sorted(set(y))]
+
+
 class ActiveLearner(object):
     """ Abstract class for an active learning classifier. """
 
@@ -44,6 +53,10 @@ class ActiveLearner(object):
 
     def run(self, xtrain, ytrain, xtest, ytest, labeled):
         """ Fit the classifier using active learning. """
+        self.xtrain = xtrain
+        self.ytrain = ytrain
+        self.xtest = xtest
+        self.ytest = ytest
         self.clf.fit(xtrain[list(labeled)], ytrain[list(labeled)])
         unlabeled = set(range(len(ytrain))) - labeled
         results = []
@@ -116,3 +129,34 @@ class CertainUncertain(ActiveLearner):
         selector = self.selectors[self.which]
         self.which = (self.which + 1) % len(self.selectors)
         return selector.select_instances(X, labeled_indices, unlabeled_indices)
+
+
+class GreedyOracle(ActiveLearner):
+    """ Select instance that maximizes accuracy on test set. This is
+    cheating. """
+
+    def __init__(self, *args, **kwargs):
+        super(GreedyOracle, self).__init__(*args, **kwargs)
+
+    def dist_to_labeled(self, xi, X):
+        xid = xi.toarray()[0]
+        return np.mean([spatial.distance.cosine(xid, xj.toarray()[0]) for xj in X])
+
+    def select_instances(self, X, labeled_indices, unlabeled_indices):
+        scores = []
+        unl = np.array(list(unlabeled_indices))
+        for idx in unl:
+            labeled_tmp = set(labeled_indices)
+            unlabeled_tmp = set(unlabeled_indices)
+            # add to training
+            labeled_tmp |= set([idx])
+            unlabeled_tmp -= set([idx])
+            # train
+            self.clf.fit(self.xtrain[list(labeled_tmp)], self.ytrain[list(labeled_tmp)])
+            # predict on testing
+            scores.append(self.eval_f(self.clf.predict(self.xtest), self.ytest))
+        top_indices = np.array(scores).argsort()[::-1][:self.batch_size]
+        self.clf.fit(self.xtrain[list(labeled_indices)], self.ytrain[list(labeled_indices)])
+        topx = self.xtrain[unl[top_indices[0]]]
+        print '\npredictions=', self.clf.predict_proba(topx), 'truth=', self.ytrain[unl[top_indices[0]]], '#words=', topx.sum(), 'distance=', self.dist_to_labeled(topx, self.xtrain[list(labeled_indices)]), 'acc=', scores[top_indices[0]]
+        return set(unl[top_indices])
