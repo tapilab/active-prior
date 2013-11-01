@@ -12,6 +12,7 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 
+
 import active
 
 
@@ -49,7 +50,7 @@ def plot_results(results, args):
         y = np.mean(results, axis=0)
         error = np.std(results, axis=0) / math.sqrt(len(results))
         color = colors.pop()
-        plt.plot(x, y, color + 'o-', label=learner)
+        plt.plot(x, y, color + 'o', label=learner)
         plt.fill_between(x, y - error, y + error, alpha=0.5, facecolor=color)
     plt.legend(loc='lower right')
     plt.xlabel('iteration')
