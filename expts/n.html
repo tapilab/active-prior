@@ -1,0 +1,28 @@
+<h3>Experimental Log</h3>
+
+<h4>Importing data</h4>
+
+<p><code>make_data.py</code> contains routines for importing various data sources. E.g., to create and pickle 20 newsgroup data:</p>
+
+<pre><code>python -m active-prior.make_data --name news --output /data/active-prior/news.pkl
+2013-11-06 10:38:11-root-INFO: Namespace(name='news', output='/data/active-prior/news.pkl')
+2013-11-06 10:38:15-root-INFO: saving news data with 1177 training and 784 testing instances and 2 labels
+</code></pre>
+
+<p>Similarly for digits data:</p>
+
+<pre><code>python -m active-prior.make_data --name digits --output /data/active-prior/digits.pkl
+2013-11-06 10:38:55-root-INFO: Namespace(name='digits', output='/data/active-prior/digits.pkl')
+2013-11-06 10:38:55-root-INFO: saving digits data with 200 training and 160 testing instances and 2 labels
+</code></pre>
+
+<h4>Baselines</h4>
+
+<p>We can run the default experiment  to compare various active learning algorithms on the 20 newsgroup data:</p>
+
+<pre><code>python -m active-prior.expt
+</code></pre>
+
+<p>This creates a plot like this:</p>
+
+<p><img src="baseline.png" alt="baseline" title="" /></p>
