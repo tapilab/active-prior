@@ -32,17 +32,35 @@ def entropy(probas):
     return -sum(p * math.log(p, 2.) for p in probas if p != 0.)
 
 
-def class_counts(y):
+def class_counts(y, n):
     """
-    >>> class_counts([2, 1, 1, 0, 1, 2])
+    >>> class_counts([2, 1, 1, 0, 1, 2], 3)
     [1, 3, 2]
     """
-    return [len([yj for yj in y if yj == yi]) for yi in sorted(set(y))]
+    return [len([yj for yj in y if yj == yi]) for yi in range(n)]
 
 
 def dist_to_labeled(xi, X):
     xid = xi.toarray()[0]
     return np.mean([spatial.distance.cosine(xid, xj.toarray()[0]) for xj in X])
+
+
+def class_distr_match(pred, truth, n):
+    """
+    >>> class_distr_match([0, 1, 2], [2, 1, 0], 3)
+    1.0
+    >>> class_distr_match([0, 0, 0], [1, 1, 1], 2)
+    0.0
+    >>> class_distr_match([0, 0, 1, 1], [1, 1, 1, 1], 2)
+    0.5
+    """
+    p_cc = 1. * np.array(class_counts(pred, n)) / len(pred)
+    t_cc = 1. * np.array(class_counts(truth, n)) / len(truth)
+    s = 1.0 - np.mean(np.abs(p_cc - t_cc))
+    # cosine has weird property: cos([0, .5], [0, 1]) = 1 !
+    # s = 1. - spatial.distance.cosine(p_cc, t_cc)
+    return s
+    # print 'pred=', p_cc, 'truth=', t_cc, 's=', s
 
 
 class ActiveLearner(object):
@@ -63,6 +81,7 @@ class ActiveLearner(object):
         self.xtest = xtest
         self.ytest = ytest
         self.clf.fit(xtrain[list(labeled)], ytrain[list(labeled)])
+        self.n_classes = len(set(ytest))
         unlabeled = set(range(len(ytrain))) - labeled
         results = []
         for iteri in range(self.iters):
@@ -118,21 +137,27 @@ class Certain(ActiveLearner):
         return set(unl[top_indices])
 
 
-class CertainUncertain(ActiveLearner):
+class Combo(ActiveLearner):
+    """ Alternate among a list of ActiveLearners. """
+
+    def __init__(self, *args, **kwargs):
+        self.learners = kwargs.pop('learners')
+        super(Combo, self).__init__(*args, **kwargs)
+        self.which = 0
+
+    def select_instances(self, X, labeled_indices, unlabeled_indices):
+        learner = self.learners[self.which]
+        self.which = (self.which + 1) % len(self.learners)
+        return learner.select_instances(X, labeled_indices, unlabeled_indices)
+
+
+class CertainUncertain(Combo):
     """ Select instances by alternating between certainty score and
     uncertainty score. """
 
     def __init__(self, *args, **kwargs):
+        kwargs['learners'] = [Certain(*args, **kwargs), Uncertain(*args, **kwargs)]
         super(CertainUncertain, self).__init__(*args, **kwargs)
-        self.certain = Certain(*args, **kwargs)
-        self.uncertain = Uncertain(*args, **kwargs)
-        self.selectors = [self.certain, self.uncertain]
-        self.which = 0
-
-    def select_instances(self, X, labeled_indices, unlabeled_indices):
-        selector = self.selectors[self.which]
-        self.which = (self.which + 1) % len(self.selectors)
-        return selector.select_instances(X, labeled_indices, unlabeled_indices)
 
 
 class GreedyOracle(ActiveLearner):
@@ -168,15 +193,54 @@ class ClassDistrMatcherOracle(ActiveLearner):
     def __init__(self, *args, **kwargs):
         super(ClassDistrMatcherOracle, self).__init__(*args, **kwargs)
 
-    def class_distr_match(self, pred, truth):
-        p_cc = 1. * np.array(class_counts(pred)) / len(pred)
-        t_cc = 1. * np.array(class_counts(truth)) / len(pred)
-        s = 1. - spatial.distance.cosine(p_cc, t_cc)
-        return s
+    def score_instance(self, idx, X, labeled_indices, unlabeled_indices):
+        labeled_tmp = set(labeled_indices)
+        unlabeled_tmp = set(unlabeled_indices)
+            # add to training
+        labeled_tmp |= set([idx])
+        unlabeled_tmp -= set([idx])
+            # train
+        self.clf.fit(self.xtrain[list(labeled_tmp)], self.ytrain[list(labeled_tmp)])
+            # predict on testing
+        return class_distr_match(self.clf.predict(self.xtest), self.ytest, self.n_classes)
 
     def select_instances(self, X, labeled_indices, unlabeled_indices):
         scores = []
         unl = np.array(list(unlabeled_indices))
+        for idx in unl:
+            scores.append(self.score_instance(idx, X, labeled_indices, unlabeled_indices))
+        print 'top scores=', sorted(scores, reverse=True)[:10]
+        top_indices = np.array(scores).argsort()[::-1][:self.batch_size]
+        # top_indices = np.array(scores).argsort()[:self.batch_size]
+        self.clf.fit(self.xtrain[list(labeled_indices)], self.ytrain[list(labeled_indices)])
+        topx = self.xtrain[unl[top_indices[0]]]
+        print '\nscore=', scores[top_indices[0]], 'predictions=', self.clf.predict_proba(topx), 'truth=', self.ytrain[unl[top_indices[0]]], '#words=', topx.sum(), 'distance=', dist_to_labeled(topx, self.xtrain[list(labeled_indices)]), 'acc=', scores[top_indices[0]]
+        return set(unl[top_indices])
+
+
+class ClassDistrUncertCombo(Combo):
+    """ Select instances by alternating between ClassDistrMatcherOracle and
+    uncertainty score. """
+
+    def __init__(self, *args, **kwargs):
+        kwargs['learners'] = [ClassDistrMatcherOracle(*args, **kwargs), Uncertain(*args, **kwargs)]
+        super(ClassDistrUncertCombo, self).__init__(*args, **kwargs)
+
+
+class ClassDistrMatcherOracleUnc(ActiveLearner):
+    """ Hybridizes ClassDistrMatcherOracle by first selecting the top K least
+    certain instances, then ranking by class distribution match. """
+
+    def __init__(self, *args, **kwargs):
+        unc_size = kwargs.pop('unc_size', 50)
+        super(ClassDistrMatcherOracleUnc, self).__init__(*args, **kwargs)
+        self.uncertain = Uncertain(*args, **kwargs)
+        self.uncertain.batch_size = unc_size
+
+    def select_instances(self, X, labeled_indices, unlabeled_indices):
+        unc_selected = self.uncertain.select_instances(X, labeled_indices, unlabeled_indices)
+        scores = []
+        unl = np.array(list(unc_selected))
         for idx in unl:
             labeled_tmp = set(labeled_indices)
             unlabeled_tmp = set(unlabeled_indices)
@@ -186,7 +250,7 @@ class ClassDistrMatcherOracle(ActiveLearner):
             # train
             self.clf.fit(self.xtrain[list(labeled_tmp)], self.ytrain[list(labeled_tmp)])
             # predict on testing
-            scores.append(self.class_distr_match(self.clf.predict(self.xtest), self.ytest))
+            scores.append(class_distr_match(self.clf.predict(self.xtest), self.ytest, self.n_classes))
         print 'top scores=', sorted(scores, reverse=True)[:10]
         top_indices = np.array(scores).argsort()[::-1][:self.batch_size]
         self.clf.fit(self.xtrain[list(labeled_indices)], self.ytrain[list(labeled_indices)])

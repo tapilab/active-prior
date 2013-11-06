@@ -53,7 +53,9 @@ def plot_results(results, args):
         color = colors.pop()
         plt.plot(x, y, color + 'o', label=learner)
         plt.fill_between(x, y - error, y + error, alpha=0.5, facecolor=color)
-    plt.legend(loc=9, bbox_to_anchor=(0.5, -0.02))
+    # plt.legend(loc=9, bbox_to_anchor=(0.5, -0.02))
+    plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+               ncol=2, mode="expand", borderaxespad=0.)
     plt.xlabel('iteration')
     plt.ylabel(args.eval)
     plt.savefig(args.figure, bbox_inches='tight')
