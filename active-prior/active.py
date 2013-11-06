@@ -74,14 +74,17 @@ class ActiveLearner(object):
         self.iters = iters
         self.eval_f = getattr(sklearn.metrics, eval_f)
 
-    def run(self, xtrain, ytrain, xtest, ytest, labeled):
-        """ Fit the classifier using active learning. """
+    def setup(self, xtrain, ytrain, xtest, ytest, labeled):
         self.xtrain = xtrain
         self.ytrain = ytrain
         self.xtest = xtest
         self.ytest = ytest
-        self.clf.fit(xtrain[list(labeled)], ytrain[list(labeled)])
         self.n_classes = len(set(ytest))
+
+    def run(self, xtrain, ytrain, xtest, ytest, labeled):
+        """ Fit the classifier using active learning. """
+        self.setup(xtrain, ytrain, xtest, ytest, labeled)
+        self.clf.fit(xtrain[list(labeled)], ytrain[list(labeled)])
         unlabeled = set(range(len(ytrain))) - labeled
         results = []
         for iteri in range(self.iters):
@@ -144,6 +147,12 @@ class Combo(ActiveLearner):
         self.learners = kwargs.pop('learners')
         super(Combo, self).__init__(*args, **kwargs)
         self.which = 0
+
+    def setup(self, xtrain, ytrain, xtest, ytest, labeled):
+        """ Fit the classifier using active learning. """
+        for l in self.learners:
+            l.setup(xtrain, ytrain, xtest, ytest, labeled)
+        super(Combo, self).setup(xtrain, ytrain, xtest, ytest, labeled)
 
     def select_instances(self, X, labeled_indices, unlabeled_indices):
         learner = self.learners[self.which]

@@ -63,13 +63,20 @@ We call this `ClassDistrMatcherOracle`.
 
 ![cdmo](cdmo.png)
 
-Looking at the scores for each instance at each iteration, we see that once
-the classifier matches the class distribution, it then just picks instances
-that don't change the decision boundary. That is, it pickes instances that it
-classifies perfectly (akin to the `Certain` strategy).
+While this approach seems to help in the very beginning, it then does much
+worse than random. Looking at the scores for each instance at each iteration,
+we see that once the classifier matches the class distribution, it then just
+picks instances that don't change the decision boundary much. That is, it pickes
+instances that it classifies perfectly (akin to the `Certain` strategy). One
+hypothesis is that the algorithm is stuck in a local minimum --- the class
+distribution matches perfectly, so the decision boundary doesn't change. But,
+while the class distribution matches, the boundary is poor.
 
-To address this, we use a hybrid strategy in which we alternate between using `ClassDistrMatcherOracle` and `Certain`:
+To address this, we use a hybrid strategy in which we alternate between using
+`ClassDistrMatcherOracle` and `Certain`, which we call
+`ClassDistrUncertCombo`. This allows us to inject some randomness to escape
+local minima:
 
-	python -m active-prior.expt --models ClassDistrUncertCombo,ClassDistrMatcherOracle,Random,Uncertain --iters 15 --trials 3 --init-labeled 20 --figure expt/cdmo_unc.png --eval f1_score
+	python -m active-prior.expt --models ClassDistrUncertCombo,ClassDistrMatcherOracle,Random,Uncertain,GreedyOracle --iters 100 --trials 3 --init-labeled 20 --figure expt/cdmo_unc.png --eval f1_score
 
 ![cdmo_unc](cdmo_unc.png)
