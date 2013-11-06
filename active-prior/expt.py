@@ -27,6 +27,7 @@ def parse_args():
     ap.add_argument('--init-labeled', default=20, type=int, help='initial number of labeled examples')
     ap.add_argument('--iters', default=100, type=int, help='number of learning iterations')
     ap.add_argument('--models', default='Random,Uncertain,Certain', help='name of ActiveLearner subclasses')
+    ap.add_argument('--figure', default='results.png', help='name of file to save figure')
     ap.add_argument('--trials', default=10, type=int, help='number of random trials')
     return ap.parse_args()
 
@@ -52,10 +53,10 @@ def plot_results(results, args):
         color = colors.pop()
         plt.plot(x, y, color + 'o', label=learner)
         plt.fill_between(x, y - error, y + error, alpha=0.5, facecolor=color)
-    plt.legend(loc='lower right')
+    plt.legend(loc=9, bbox_to_anchor=(0.5, -0.02))
     plt.xlabel('iteration')
     plt.ylabel(args.eval)
-    plt.show()
+    plt.savefig(args.figure, bbox_inches='tight')
 
 
 def print_results(results):
