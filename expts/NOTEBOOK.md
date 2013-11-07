@@ -77,6 +77,6 @@ To address this, we use a hybrid strategy in which we alternate between using
 `ClassDistrUncertCombo`. This allows us to inject some randomness to escape
 local minima:
 
-	python -m active-prior.expt --models ClassDistrUncertCombo,ClassDistrMatcherOracle,Random,Uncertain,GreedyOracle --iters 100 --trials 3 --init-labeled 20 --figure expt/cdmo_unc.png --eval f1_score
+	python -m active-prior.expt --models ClassDistrUncertCombo,ClassDistrMatcherOracle,Random,Uncertain,GreedyOracle --iters 100 --trials 3 --init-labeled 20 --figure expts/cdmo_unc.png --eval f1_score
 
 ![cdmo_unc](cdmo_unc.png)
